@@ -2,15 +2,24 @@ const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
+const CssMinimizerWebpackPlugin = require("css-minimizer-webpack-plugin");
+const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = {
 	entry: "./src/index.js",
 	output: {
 		path: path.resolve(__dirname, "dist"),
-		filename: "main.js",
+		filename: "[name][contenthash].js",
+		assetModuleFilename: "assets/images/[hash][ext][query]",
 	},
 	resolve: {
 		extensions: [".js"],
+		alias: {
+			"@utils": path.resolve(__dirname, "src/utils/"),
+			"@templates": path.resolve(__dirname, "src/templates/"),
+			"@styles": path.resolve(__dirname, "src/styles/"),
+			"@images": path.resolve(__dirname, "src/assets/images/"),
+		},
 	},
 	module: {
 		rules: [
@@ -29,6 +38,21 @@ module.exports = {
 				test: /\.png/,
 				type: "asset/resource",
 			},
+			{
+				test: /\.(woff|woff2)$/,
+				use: {
+					loader: "url-loader",
+					options: {
+						limit: 10000,
+						mimetype: "application/font-woff",
+						name: "[name].[contenthash].[ext]",
+						outputPath: "./assets/fonts",
+						publicPath: "../assets/fonts",
+						esModule: false,
+					},
+				},
+				type: "javascript/auto",
+			},
 		],
 	},
 	plugins: [
@@ -37,7 +61,9 @@ module.exports = {
 			template: "./public/index.html",
 			filename: "./index.html",
 		}),
-		new MiniCssExtractPlugin(),
+		new MiniCssExtractPlugin({
+			filename: "assets/[name].[contenthash].css",
+		}),
 		new CopyPlugin({
 			patterns: [
 				{
@@ -47,4 +73,8 @@ module.exports = {
 			],
 		}),
 	],
+	optimization: {
+		minimize: true,
+		minimizer: [new CssMinimizerWebpackPlugin(), new TerserPlugin()],
+	},
 };
